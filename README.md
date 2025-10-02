@@ -33,6 +33,9 @@ _Add screenshots or a short GIF here once you have them (Play requires them for 
 > This repository currently reports Kotlin as the primary language.
 
 ---
+## Licence
+
+GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 
 ## Getting Started (Android Studio)
 
