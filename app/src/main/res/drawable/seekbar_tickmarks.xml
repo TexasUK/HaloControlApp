@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <corners android:radius="2dp" />
+            <solid android:color="#CCCCCC" />
+        </shape>
+    </item>
+
+    <!-- Progress bar -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <corners android:radius="2dp" />
+                <solid android:color="#2196F3" />
+            </shape>
+        </clip>
+    </item>
+
+    <!-- Tick marks - this will be repeated for each step -->
+    <item>
+        <selector>
+            <!-- This creates tick marks at regular intervals -->
+            <item>
+                <layer-list>
+                    <!-- Tick marks will be drawn programmatically -->
+                </layer-list>
+            </item>
+        </selector>
+    </item>
+</layer-list>

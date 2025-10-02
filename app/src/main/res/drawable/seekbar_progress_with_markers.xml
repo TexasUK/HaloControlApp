@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <corners android:radius="2dp" />
+            <solid android:color="#CCCCCC" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <corners android:radius="2dp" />
+                <solid android:color="#2196F3" />
+            </shape>
+        </clip>
+    </item>
+    <!-- Markers for steps -->
+    <item>
+        <shape>
+            <size android:width="1dp" android:height="20dp" />
+            <solid android:color="#666666" />
+        </shape>
+    </item>
+</layer-list>
