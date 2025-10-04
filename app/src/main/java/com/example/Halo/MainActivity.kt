@@ -95,6 +95,10 @@ class MainActivity : AppCompatActivity() {
     private var isConnected = false
     private var isReadingValues = false
 
+    // Read values on connect class variables
+    private var characteristicsRead = 0
+    private var totalCharacteristicsToRead = 4
+
     companion object {
         private const val REQUEST_BLUETOOTH_PERMISSIONS = 1
         private const val TAG = "BLEDebug"
@@ -260,6 +264,22 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun enableControlsWithFallback() {
+        runOnUiThread {
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (isReadingValues) {
+                    Log.w(TAG, "Fallback: Enabling controls after timeout")
+                    isReadingValues = false
+                    dataSourceSwitch.isEnabled = true
+                    volumeSeekBar.isEnabled = true
+                    elevationSeekBar.isEnabled = true
+                    qnhSeekBar.isEnabled = true
+                    statusTextView.text = "Connected (some values may be default)"
+                }
+            }, 5000) // 5 second fallback
+        }
+    }
+
     private fun resetToDefaults() {
         volumeSeekBar.setProgress(DEFAULT_VOLUME_SLIDER)
         elevationSeekBar.setProgress(DEFAULT_ELEVATION)
@@ -395,24 +415,79 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingPermission")
     private fun readCurrentValues() {
         isReadingValues = true
-        // Disable controls until we read the actual values
-        dataSourceSwitch.isEnabled = false
-        volumeSeekBar.isEnabled = false
-        elevationSeekBar.isEnabled = false
-        qnhSeekBar.isEnabled = false
+        characteristicsRead = 0
+        totalCharacteristicsToRead = 4
 
-        bluetoothGatt?.readCharacteristic(volumeCharacteristic)
-        Handler(Looper.getMainLooper()).postDelayed({ bluetoothGatt?.readCharacteristic(elevationCharacteristic) }, 200)
-        Handler(Looper.getMainLooper()).postDelayed({ bluetoothGatt?.readCharacteristic(qnhCharacteristic) }, 400)
-        Handler(Looper.getMainLooper()).postDelayed({ bluetoothGatt?.readCharacteristic(dataSourceCharacteristic) }, 600)
+        Log.d(TAG, "Starting to read current values...")
+
+        // Disable controls until we read the actual values
+        runOnUiThread {
+            dataSourceSwitch.isEnabled = false
+            volumeSeekBar.isEnabled = false
+            elevationSeekBar.isEnabled = false
+            qnhSeekBar.isEnabled = false
+            statusTextView.text = "Reading current values..."
+        }
+
+        // Read characteristics one by one with delays to avoid overwhelming the BLE stack
         Handler(Looper.getMainLooper()).postDelayed({
-            isReadingValues = false
-            // Re-enable controls after all reads complete
-            dataSourceSwitch.isEnabled = true
-            volumeSeekBar.isEnabled = true
-            elevationSeekBar.isEnabled = true
-            qnhSeekBar.isEnabled = true
-        }, 800)
+            Log.d(TAG, "Reading volume characteristic...")
+            volumeCharacteristic?.let {
+                val readSuccess = bluetoothGatt?.readCharacteristic(it)
+                if (readSuccess != true) {
+                    Log.e(TAG, "Failed to read volume characteristic")
+                    characteristicsRead++
+                }
+            } ?: run {
+                Log.e(TAG, "Volume characteristic is null")
+                characteristicsRead++
+            }
+        }, 100)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d(TAG, "Reading elevation characteristic...")
+            elevationCharacteristic?.let {
+                val readSuccess = bluetoothGatt?.readCharacteristic(it)
+                if (readSuccess != true) {
+                    Log.e(TAG, "Failed to read elevation characteristic")
+                    characteristicsRead++
+                }
+            } ?: run {
+                Log.e(TAG, "Elevation characteristic is null")
+                characteristicsRead++
+            }
+        }, 300)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d(TAG, "Reading QNH characteristic...")
+            qnhCharacteristic?.let {
+                val readSuccess = bluetoothGatt?.readCharacteristic(it)
+                if (readSuccess != true) {
+                    Log.e(TAG, "Failed to read QNH characteristic")
+                    characteristicsRead++
+                }
+            } ?: run {
+                Log.e(TAG, "QNH characteristic is null")
+                characteristicsRead++
+            }
+        }, 500)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d(TAG, "Reading data source characteristic...")
+            dataSourceCharacteristic?.let {
+                val readSuccess = bluetoothGatt?.readCharacteristic(it)
+                if (readSuccess != true) {
+                    Log.e(TAG, "Failed to read data source characteristic")
+                    characteristicsRead++
+                }
+            } ?: run {
+                Log.e(TAG, "Data source characteristic is null")
+                characteristicsRead++
+            }
+        }, 700)
+
+        // Fallback in case some reads fail
+        enableControlsWithFallback()
     }
 
     private val scanCallback = object : ScanCallback() {
@@ -449,6 +524,7 @@ class MainActivity : AppCompatActivity() {
                     connectionStatus.text = "Disconnected"
                     updateConnectButton()
                     // Re-enable controls when disconnected
+                    isReadingValues = false
                     dataSourceSwitch.isEnabled = true
                     volumeSeekBar.isEnabled = true
                     elevationSeekBar.isEnabled = true
@@ -462,6 +538,7 @@ class MainActivity : AppCompatActivity() {
                 } else if (status != BluetoothGatt.GATT_SUCCESS) {
                     connectionStatus.text = "Connection error ($status)"
                     // Re-enable controls on connection error
+                    isReadingValues = false
                     dataSourceSwitch.isEnabled = true
                     volumeSeekBar.isEnabled = true
                     elevationSeekBar.isEnabled = true
@@ -476,6 +553,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     statusTextView.text = "Service discovery failed: $status"
                     // Re-enable controls if service discovery fails
+                    isReadingValues = false
                     dataSourceSwitch.isEnabled = true
                     volumeSeekBar.isEnabled = true
                     elevationSeekBar.isEnabled = true
@@ -488,6 +566,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     statusTextView.text = "Service not found - check UUIDs"
                     // Re-enable controls if service not found
+                    isReadingValues = false
                     dataSourceSwitch.isEnabled = true
                     volumeSeekBar.isEnabled = true
                     elevationSeekBar.isEnabled = true
@@ -510,26 +589,27 @@ class MainActivity : AppCompatActivity() {
             // Read initial values
             runOnUiThread {
                 statusTextView.text = "Reading current values..."
-                // Disable controls while reading values
-                dataSourceSwitch.isEnabled = false
-                volumeSeekBar.isEnabled = false
-                elevationSeekBar.isEnabled = false
-                qnhSeekBar.isEnabled = false
             }
             readCurrentValues()
         }
 
         override fun onCharacteristicRead(gatt: BluetoothGatt, ch: BluetoothGattCharacteristic, status: Int) {
-            if (status != BluetoothGatt.GATT_SUCCESS) return
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "Characteristic read failed: ${ch.uuid}, status: $status")
+                return
+            }
             val value = ch.value ?: return
+
             runOnUiThread {
                 when (ch.uuid) {
                     VOLUME_CHARACTERISTIC_UUID -> {
                         if (value.isNotEmpty()) {
                             val actual = (value[0].toInt() and 0xFF).coerceIn(0, VOLUME_ACTUAL_MAX)
                             volumeSeekBar.setProgress(convertActualToSliderVolume(actual))
+                            volumeValue.text = "Volume: ${volumeSeekBar.getProgress()}/10"
                             Log.d(TAG, "Read volume: $actual/30")
                         }
+                        characteristicsRead++
                     }
                     ELEVATION_CHARACTERISTIC_UUID -> {
                         val feet = if (value.size >= 2) {
@@ -537,9 +617,11 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             (value[0].toInt() and 0xFF) * 10
                         }
-                        val slider = (feet / 10).coerceIn(0, 100)  // Changed to match new range
+                        val slider = (feet / 10).coerceIn(0, 100)
                         elevationSeekBar.setProgress(slider)
+                        elevationValue.text = "Airfield Elevation: ${slider * 10}ft"
                         Log.d(TAG, "Read elevation: $feet ft")
+                        characteristicsRead++
                     }
                     QNH_CHARACTERISTIC_UUID -> {
                         val hPa = if (value.size >= 2) {
@@ -549,7 +631,10 @@ class MainActivity : AppCompatActivity() {
                         }
                         val slider = ((hPa - 800) / 2).coerceIn(0, 200)
                         qnhSeekBar.setProgress(slider)
+                        val qnh = 800 + (slider * 2)
+                        qnhValue.text = "QNH Pressure: ${String.format("%.1f", qnh.toFloat())}mb"
                         Log.d(TAG, "Read QNH: $hPa hPa")
+                        characteristicsRead++
                     }
                     DATASOURCE_CHARACTERISTIC_UUID -> {
                         if (value.isNotEmpty()) {
@@ -557,11 +642,25 @@ class MainActivity : AppCompatActivity() {
                             dataSourceSwitch.isChecked = isSoft
                             updateDataSourceDisplay()
                             Log.d(TAG, "Read data source: ${if (isSoft) "SoftRF" else "Flarm"}")
+                            characteristicsRead++
+                        } else {
+                            Log.e(TAG, "Empty data source value received")
                         }
                     }
                 }
-                updateSliderDisplays()
-                statusTextView.text = "Connected and ready!"
+
+                // Check if all characteristics have been read
+                Log.d(TAG, "Characteristics read: $characteristicsRead/$totalCharacteristicsToRead")
+                if (characteristicsRead >= totalCharacteristicsToRead) {
+                    // All values read, enable controls
+                    isReadingValues = false
+                    dataSourceSwitch.isEnabled = true
+                    volumeSeekBar.isEnabled = true
+                    elevationSeekBar.isEnabled = true
+                    qnhSeekBar.isEnabled = true
+                    statusTextView.text = "Connected and ready!"
+                    Log.d(TAG, "All values read, controls enabled")
+                }
             }
         }
 
