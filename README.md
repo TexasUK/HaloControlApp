@@ -19,7 +19,10 @@ Control compatible HALO devices from your Android phone. Fast pairing, responsiv
 
 ## Screenshots
 
-_Add screenshots or a short GIF here once you have them (Play requires them for listing)._
+<img width="486" height="1080" alt="Screenshots Halo" src="https://github.com/user-attachments/assets/53102ee5-5c3d-4ebc-8ce5-f82c6068d309" />
+
+<img width="486" height="1080" alt="Screenshots2 Halo" src="https://github.com/user-attachments/assets/e7d0f234-7872-4700-bf23-504b71e66a14" />
+
 
 ---
 
