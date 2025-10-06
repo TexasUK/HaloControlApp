@@ -33,7 +33,6 @@ Control compatible HALO devices from your Android phone. Fast pairing, responsiv
 - **Min SDK / Target:** set in `app/build.gradle(.kts)`  
 - **Build:** Android Gradle Plugin (AGP) 8.x, JDK 17+
 
-> This repository currently reports Kotlin as the primary language.
 
 ---
 ## Licence
